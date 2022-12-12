@@ -1,0 +1,75 @@
+#sideBar{
+    background-color: #25252e;
+    height: 95vh;
+    border-radius: 20px;
+    margin-top: 10px;
+    margin-left: 10px;
+    ul{
+        margin: 0;
+        padding: 0;
+        .product{
+            list-style: none;
+            margin: 0;
+            padding: 10px;
+            text-align: center;
+            font-size: 25px;
+            font-family: "DM San";
+            margin-top: 20px;
+            transition: 0.3s ease-in-out;
+            cursor: pointer;
+            a{
+                text-decoration: none;
+                color: black;
+                background-color: white;
+                border-radius: 10px;
+                padding: 10px 100px;
+                transition: 0.3s ease-in-out;
+                cursor: pointer;
+                &:hover{
+                   background-color: transparent;
+                   color: white;
+                }
+            }
+        }
+        .dashboard{
+            text-align: center;
+            padding-top: 20px;
+            list-style:none;
+            border-bottom: 1px solid #fff;
+            color: white;
+            cursor: pointer;
+            a{
+                color: white;
+                text-decoration: none;
+                font-size: 40px;
+                font-family:  "Crimson Text", serif;
+                cursor: pointer;
+            }
+        }
+
+        .logout{
+            list-style: none;
+            margin: 0;
+            padding: 10px;
+            text-align: center;
+            font-size: 25px;
+            font-family: "DM San";
+            margin-top: 10px;
+            transition: 0.3s ease-in-out;
+            cursor: pointer;
+            a{
+                text-decoration: none;
+                color: #fff;
+                background-color: #eb89a0;
+                border-radius: 10px;
+                padding: 10px 100px;
+                transition: 0.3s ease-in-out;
+                cursor: pointer;
+                &:hover{
+                   background-color: transparent;
+                   color: white;
+                }
+            }
+        }
+    }
+}
