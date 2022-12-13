@@ -1,8 +1,14 @@
-import { FormLabel, Switch, TextField } from '@mui/material'
+import { Box, FormControl, FormLabel, InputLabel, MenuItem, Select, Switch, TextField } from '@mui/material'
 import React, { useState } from 'react'
 import './restaurants.scss'
 import ImageUploading from 'react-images-uploading';
 import { LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
+import MapPicker from 'react-google-map-picker';
+
+
+const DefaultLocation = { lat: 40.4093, lng: 49.8671 };
+const DefaultZoom = 10;
+
 
 
 const CreateRestaurants = () => {
@@ -11,7 +17,10 @@ const CreateRestaurants = () => {
     const [roomList, setRoomList] = useState([{ room: "" }]);
     const [images, setImages] = React.useState([]);
     const [singleImages, setSingleImages] = React.useState([]);
-    const [value, setValue] = React.useState(null);
+    const [defaultLocation, setDefaultLocation] = useState(DefaultLocation);
+    const [location, setLocation] = useState(defaultLocation);
+    const [zoom, setZoom] = useState(DefaultZoom);
+    const [bool, setBool] = useState()
     const maxNumber = 69;
 
 
@@ -61,6 +70,33 @@ const CreateRestaurants = () => {
     const handleRoomAdd = () => {
         setRoomList([...roomList, { room: "" }]);
     };
+
+
+
+    function handleChangeLocation(lat, lng) {
+        setLocation({ lat: lat, lng: lng });
+    }
+
+    function handleChangeZoom(newZoom) {
+        setZoom(newZoom);
+    }
+
+    function handleResetLocation() {
+        setDefaultLocation({ ...DefaultLocation });
+        setZoom(DefaultZoom);
+    }
+
+    const [age, setAge] = React.useState('');
+
+
+    const handleChange = (event) => {
+        setAge(event.target.value)
+        console.log(age)
+    };
+
+    console.log("========" + age)
+
+
     return (
         <div id='CreateRestaurants'>
             <TextField fullWidth id="outlined-basic" label="Restoranın adı" className='mb-4' variant="outlined" />
@@ -341,12 +377,83 @@ const CreateRestaurants = () => {
                     </div>
                 </div>
             </div>
+
+            <button onClick={handleResetLocation}>Reset Location</button>
+            <label>Latitute:</label><input type='text' value={location.lat} disabled />
+            <label>Longitute:</label><input type='text' value={location.lng} disabled />
+            <label>Zoom:</label><input type='text' value={zoom} disabled />
+
+            <MapPicker defaultLocation={defaultLocation}
+                zoom={zoom}
+                mapTypeId="roadmap"
+                style={{ height: '700px' }}
+                onChangeLocation={handleChangeLocation}
+                onChangeZoom={handleChangeZoom}
+                apiKey='AIzaSyD07E1VvpsN_0FvsmKAj4nK9GnLq-9jtj8'
+            />
+
+            <br />
+            <Box sx={{ minWidth: 120 }}>
+                <FormControl fullWidth>
+                    <InputLabel id="demo-simple-select-label">Menu</InputLabel>
+                    <Select
+                        labelId="demo-simple-select-label"
+                        id="demo-simple-select"
+                        value={age}
+                        label="Age"
+                        onChange={handleChange}
+                    >
+                        <MenuItem value={10}>Link</MenuItem>
+                        <MenuItem value={20}>File</MenuItem>
+                    </Select>
+                    {
+                        age ? <TextField fullWidth id="outlined-basic" label="Əsas mətbəx" className='mb-4' variant="outlined" /> : 
+                        <div className="profilePhoto">
+                        <p>Profil şəkli</p>
+                        <ImageUploading
+                            value={images}
+                            onChange={onChange}
+                            maxNumber={maxNumber}
+                            dataURLKey="data_url"
+                        >
+                            {({
+                                imageList,
+                                onImageUpload,
+                                onImageRemoveAll,
+                                onImageUpdate,
+                                onImageRemove,
+                                isDragging,
+                                dragProps,
+                            }) => (
+                                <div className="upload__image-wrapper">
+                                    <button
+                                        style={isDragging ? { color: 'red' } : undefined}
+                                        onClick={onImageUpload}
+                                        {...dragProps}
+                                        className="uploadSinglePhoto"
+                                    >
+                                        Upload photo
+                                    </button>
+                                    &nbsp;
+                                    {imageList.map((image, index) => (
+                                        <div key={index} className="image-item">
+                                            <img src={image['data_url']} className="smallphoto" alt="" width="600" />
+                                            <div className="image-item__btn-wrapper">
+                                                <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
+                                                <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </ImageUploading>
+                    </div>
+                    }
+                    
+                </FormControl>
+            </Box>
+
             
-            
-
-
-
-
         </div>
     )
 }
