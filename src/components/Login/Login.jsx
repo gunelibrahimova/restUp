@@ -12,7 +12,7 @@ const Login = () => {
     const emailRef = useRef(null)
     const passwordRef = useRef(null)
 
-    const signIn = e => {
+    const signIn = (e) => {
         e.preventDefault();
         signInWithEmailAndPassword(auth,
             emailRef.current.value, passwordRef.current.value
@@ -20,21 +20,21 @@ const Login = () => {
             console.log('user', user)
         }).catch(err => {
             console.log(err)
-        })
+        })        
     }
 
 
 
     return (
         <div id="login">
-            {/* <form action="">
+            <form action="">
                 <h1>Sign in</h1>
                 <input ref={emailRef} type="email" />
                 <input ref={passwordRef} type="password" />
                 <button onClick={signIn}> Sign in</button>
-            </form> */}
+            </form>
 
-            <div className="container my-5">
+            {/* <div className="container my-5">
                 <div className="row">
 
 
@@ -55,7 +55,7 @@ const Login = () => {
                     </div>
 
                 </div>
-            </div>
+            </div> */}
         </div>
     )
 }

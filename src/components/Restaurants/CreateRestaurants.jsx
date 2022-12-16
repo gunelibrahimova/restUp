@@ -2,7 +2,6 @@ import { Box, FormControl, FormLabel, InputLabel, MenuItem, Select, Switch, Text
 import React, { useState } from 'react'
 import './restaurants.scss'
 import ImageUploading from 'react-images-uploading';
-import { LocalizationProvider, TimePicker } from '@mui/x-date-pickers';
 import MapPicker from 'react-google-map-picker';
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
@@ -16,22 +15,22 @@ const CreateRestaurants = () => {
     const [address, setAddress] = useState("")
     const [avaragePrice, setAvaragePrice] = useState("")
     const [kitchen, setKitchen] = useState("")
-    const [startTime, setStartTime] = useState("")
-    const [endTime, setEndTime] = useState("")
-    const [reservStartTime, setReservStartTime] = useState("")
-    const [reservEndTime, setReservEndTime] = useState("")
+    const [startTime, setStartTime] = useState("07:30")
+    const [endTime, setEndTime] = useState("18:00")
+    const [reservStartTime, setReservStartTime] = useState("07:30")
+    const [reservEndTime, setReservEndTime] = useState("15:00")
     const [social, setSocial] = useState("")
     const [smookTrue, setSmookTrue] = useState("")
     const [smookFalse, setSmookFalse] = useState("")
     const [description, setDescription] = useState("")
-    const [bool, setBool] = useState("")
+    const [bool, setBool] = useState(true)
     const [menuPhoto, setMenuPhoto] = useState("")
     const [guest, setGuest] = useState("")
     const [userName, setUserName] = useState("")
     const [password, setPassword] = useState("")
     const [lat, setLat] = useState("")
     const [lng, setLng] = useState("")
-    const [serviceList, setServiceList] = useState([{ service: "" }]);
+    const [number, setNumber] = useState([{ mobile: "" }]);
     const [roomList, setRoomList] = useState([{ room: "" }]);
     const [images, setImages] = React.useState([]);
     const [singleImages, setSingleImages] = React.useState([]);
@@ -41,16 +40,15 @@ const CreateRestaurants = () => {
     const [age, setAge] = React.useState('');
     const maxNumber = 69;
 
-
+    
 
     //for upload image
     const onChange = (imageList, addUpdateIndex, e) => {
-        // console.log(imageList, addUpdateIndex);
-        setImages(imageList);
+        setSingleImages(imageList);
     };
 
     const onChangee = (imageList, addUpdateIndex) => {
-        setSingleImages(imageList);
+        setImages(imageList);
     };
 
     const onChangeMenu = (imageList, addUpdateIndex) => {
@@ -59,26 +57,26 @@ const CreateRestaurants = () => {
 
     //for addorRemoveInput
     const handleServiceChange = (e, index) => {
-        const { name, value } = e.target;
-        const list = [...serviceList];
-        list[index][name] = value;
-        setServiceList(list);
+        const {value} = e.target;
+        const list = [...number];
+        list[index] = value;
+        setNumber(list);
     };
 
     const handleServiceRemove = (index) => {
-        const list = [...serviceList];
+        const list = [...number];
         list.splice(index, 1);
-        setServiceList(list);
+        setNumber(list);
     };
 
-    const handleServiceAdd = () => {
-        setServiceList([...serviceList, { service: "" }]);
+    const handleServiceAdd = (e) => {
+        setNumber([...number, ""]);
     };
 
     const handleRoomChange = (e, index) => {
-        const { name, value } = e.target;
+        const { value } = e.target;
         const list = [...roomList];
-        list[index][name] = value;
+        list[index]= value;
         setRoomList(list);
     };
 
@@ -89,7 +87,7 @@ const CreateRestaurants = () => {
     };
 
     const handleRoomAdd = () => {
-        setRoomList([...roomList, { room: "" }]);
+        setRoomList([...roomList, ""]);
     };
 
     function handleChangeLocation(lat, lng) {
@@ -116,7 +114,7 @@ const CreateRestaurants = () => {
         try {
             const docRef = await addDoc(collection(db, "restaurantes"), {
                 name: restaurantName,
-                mobileNumbers: ["ndc ", "jncz"],
+                mobileNumbers: number,
                 address: address,
                 avaragePrice: parseFloat(avaragePrice),
                 kitchen: kitchen,
@@ -129,11 +127,13 @@ const CreateRestaurants = () => {
                 smookFalse: smookFalse,
                 description: description,
                 bool: bool,
-                guest: guest,
+                guest: parseFloat(guest),
                 userName: userName,
                 password: password,
                 lat: lat,
-                lng: lng
+                lng: lng,
+                singleImages : singleImages,
+                roomList : roomList
             });
         } catch (err) {
             console.log(err);
@@ -144,7 +144,7 @@ const CreateRestaurants = () => {
         <div id='CreateRestaurants'>
             <TextField fullWidth id="outlined-basic" label="Restoranın adı" className='mb-4' variant="outlined" onChange={e => setRestaurantName(e.target.value)} />
 
-            {serviceList.map((singleService, index) => (
+            {number.map((singleService, index) => (
 
                 <div key={index} className="row align-items-center justify-content-center">
                     <div className="col-lg-8">
@@ -154,7 +154,7 @@ const CreateRestaurants = () => {
                     </div>
                     <div className="col-lg-2">
                         <div className="second-division">
-                            {serviceList.length !== 1 && (
+                            {number.length !== 1 && (
                                 <button
                                     type="button"
                                     onClick={() => handleServiceRemove(index)}
@@ -166,7 +166,7 @@ const CreateRestaurants = () => {
                         </div>
                     </div>
                     <div className="col-lg-2">
-                        {serviceList.length - 1 === index && serviceList.length < 100 && (
+                        {number.length - 1 === index && number.length < 100 && (
                             <button
                                 type="button"
                                 onClick={handleServiceAdd}
@@ -192,6 +192,7 @@ const CreateRestaurants = () => {
                             className='startTime'
                             defaultValue="07:30"
                             onChange={(e) => (
+                                console.log(e),
                                 setStartTime(e.target.value)
                             )}
                             InputLabelProps={{
@@ -300,8 +301,8 @@ const CreateRestaurants = () => {
                 </div>
                 <div className="col-lg-6 d-flex justify-content-end">
                     <FormLabel component="legend">
-                        <Switch onChange={(e) => (
-                            setBool(e.target.value)
+                        <Switch defaultChecked onChange={(e) => (
+                            setBool(e.target.checked)
                         )} />
                     </FormLabel>
                 </div>
@@ -310,7 +311,7 @@ const CreateRestaurants = () => {
             <div className="profilePhoto">
                 <p>Profil şəkli</p>
                 <ImageUploading
-                    value={images}
+                    value={singleImages}
                     onChange={onChange}
                     maxNumber={maxNumber}
                     dataURLKey="data_url"
@@ -351,7 +352,7 @@ const CreateRestaurants = () => {
                 <p>Səkillər</p>
                 <ImageUploading
                     multiple
-                    value={singleImages}
+                    value={images}
                     onChange={onChangee}
                     maxNumber={maxNumber}
                     dataURLKey="data_url"
@@ -466,7 +467,7 @@ const CreateRestaurants = () => {
                         label="Age"
                         onChange={handleChange}
                     >
-                        <MenuItem value={10} onClick={console.log("salam")}>Link</MenuItem>
+                        <MenuItem value={10} >Link</MenuItem>
                         <MenuItem value={20}>File</MenuItem>
 
 

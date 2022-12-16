@@ -2,6 +2,7 @@ import {
   useEffect,
   useState
 } from 'react';
+import { ClipLoader } from 'react-spinners';
 import './App.css';
 import Login from './components/Login/Login';
 import SideBar from './components/SideBar/SideBar';
@@ -10,10 +11,18 @@ import {
 } from './config/firebase';
 import MyRouter from './router/MyRouter';
 
+const override: CSSProperties = {
+  display: "block",
+  margin: "0 auto",
+  borderColor: "red",
+};
+
 function App() {
 
   const [user, setUser] = useState(null)
-  const [bool, setBool] = useState(true)
+  const [loading, setLoading] = useState(true);
+  let [color, setColor] = useState("#ffffff");
+
 
 
   useEffect(() => {
@@ -22,23 +31,25 @@ function App() {
           uid: userAuth.uid,
           email: userAuth.email
         }
+        setLoading(true)
         if (userAuth) {
           console.log('userAuth', userAuth)
+          
           setUser(user)
         } else {
           setUser(null)
         }
       })
       return unsubscribe 
+      setLoading(false)
   }, [])
-
-
 
 
   return ( 
     <div className = "App" >
 
     {
+      
       user ? <div className='container-fluid'>
       <div className="row">
         <div className="col-lg-3 p-0">
@@ -48,7 +59,14 @@ function App() {
           <MyRouter /> 
         </div>
       </div>
-    </div> : <Login/>
+    </div> : loading ? <ClipLoader
+        color={color}
+        loading={loading}
+        cssOverride={override}
+        size={150}
+        aria-label="Loading Spinner"
+        data-testid="loader"
+      /> :  <Login/>
     }
 
 
