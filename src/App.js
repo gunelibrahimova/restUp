@@ -27,21 +27,21 @@ function App() {
 
   useEffect(() => {
       const unsubscribe = auth.onAuthStateChanged(userAuth => {
-        const user = {
-          uid: userAuth.uid,
-          email: userAuth.email
-        }
-        setLoading(true)
-        if (userAuth) {
+       
+        if (userAuth != null) {
           console.log('userAuth', userAuth)
-          
+          const user = {
+            uid: userAuth.uid,
+            email: userAuth.email
+          }
           setUser(user)
         } else {
           setUser(null)
         }
       })
-      return unsubscribe 
       setLoading(false)
+      return unsubscribe 
+     
   }, [])
 
 

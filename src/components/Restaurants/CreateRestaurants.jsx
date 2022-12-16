@@ -139,6 +139,10 @@ const CreateRestaurants = () => {
             console.log(err);
         }
     }
+    Date.prototype.addHours= function(h){
+        this.setHours(this.getHours()+h);
+        return this;
+    }
 
     return (
         <div id='CreateRestaurants'>
@@ -192,8 +196,7 @@ const CreateRestaurants = () => {
                             className='startTime'
                             defaultValue="07:30"
                             onChange={(e) => (
-                                console.log(e),
-                                setStartTime(e.target.value)
+                                setStartTime(e.target.valueAsDate.addHours(-4))
                             )}
                             InputLabelProps={{
                                 shrink: true,
@@ -210,7 +213,7 @@ const CreateRestaurants = () => {
                             type="time"
                             defaultValue="18:00"
                             onChange={(e) => (
-                                setEndTime(e.target.value)
+                                setEndTime(e.target.valueAsDate.addHours(-4))
                             )}
                             InputLabelProps={{
                                 shrink: true,
@@ -230,7 +233,7 @@ const CreateRestaurants = () => {
                             className='startTime'
                             defaultValue="07:30"
                             onChange={(e) => (
-                                setReservStartTime(e.target.value)
+                                setReservStartTime(e.target.valueAsDate.addHours(-4))
                             )}
                             InputLabelProps={{
                                 shrink: true,
@@ -247,7 +250,7 @@ const CreateRestaurants = () => {
                             type="time"
                             defaultValue="07:30"
                             onChange={(e) => (
-                                setReservEndTime(e.target.value)
+                                setReservEndTime(e.target.valueAsDate.addHours(-4))
                             )}
 
                             InputLabelProps={{
