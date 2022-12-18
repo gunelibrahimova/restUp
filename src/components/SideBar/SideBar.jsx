@@ -9,7 +9,9 @@ const SideBar = () => {
         <div id='sideBar'>
             <ul>
                 <li className='dashboard'>
-                   <img width="120" className='p-1' src={logo} alt="" />
+                    <Link to="/restaurants">
+                        <img width="120" className='p-1' src={logo} alt="" />
+                    </Link>
                 </li>
                 <li className="product">
                     <Link to="/restaurants">Restaurants</Link>
