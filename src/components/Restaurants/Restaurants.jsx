@@ -10,8 +10,10 @@ const Restaurants = () => {
     const [restaurantes, setRestaurantes] = useState([]);
     const restaurantCollectionRef = collection(db, "restaurantes");
     // const [deletee, setDeletee] = useState("")
-    
+
     const deleteRestaurant = async (id) => {
+
+        console.log((id));
         const userDoc = doc(db, "restaurantes", id);
         let dlt = await deleteDoc(userDoc);
         // setDeletee(dlt)
@@ -37,7 +39,7 @@ const Restaurants = () => {
                                 <div className="col-lg-3 my-2">
                                     <div className="card">
                                         <div className="card-body">
-                                            <img width='100%' src={restaurant.thumbImage} alt="" />
+                                            <img width='220' src={restaurant.thumbImage} alt="" />
                                             <h5 className="card-title text-center">
                                                 {restaurant.name}
                                             </h5>
@@ -50,7 +52,12 @@ const Restaurants = () => {
                                                     }} >Delete</button>
                                                 </div>
                                                 <div className="col-lg-6">
-                                                    <Link to={`/restaurants/update/${restaurant.id}`}>
+                                                    <Link
+                                                        to="/restaurants/update/"
+                                                        state={{
+                                                            id: restaurant.id
+                                                        }}
+                                                    >
                                                         <button className='btn btn-outline-warning w-100' >Edit</button>
                                                     </Link>
                                                 </div>

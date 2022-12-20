@@ -1,6 +1,11 @@
 #restaurant {
     margin-top: 50px;
     margin-left: 10px;
+    .card{
+        .card-body{
+            height: 180px;
+        }
+    }
 }
 
 #CreateRestaurants {

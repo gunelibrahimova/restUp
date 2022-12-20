@@ -34,22 +34,23 @@ const CreateRestaurants = () => {
     const [lat, setLat] = useState(defaultLocation.lat)
     const [lng, setLng] = useState(defaultLocation.lng)
     const [phoneNumbers, setPhoneNumbers] = useState([{ mobile: "" }]);
-    const [roomList, setRoomList] = useState([{ room: "" }]);
+    const [roomTypes, setRoomTypes] = useState([{ room: "" }]);
+    const [images, setImages] = useState([]);
     const [menu, setMenu] = useState("");
-    const [images, setImages] = React.useState([]);
+    const [photos, setPhotos] = React.useState([]);
     const [singleImages, setSingleImages] = React.useState([]);
     const [location, setLocation] = useState(defaultLocation);
     const [zoom, setZoom] = useState(DefaultZoom);
     const [age, setAge] = React.useState('');
     const maxNumber = 69;
-    const [imageUpload, setImageUpload] = useState(null);
-    const [imageUrls, setImageUrls] = useState([]);
+    const [menuUrls, setMenuUrls] = useState([]);
     const [thumbImage, setThumbImage] = useState("")
+
     // const [images, setThumbImage] = useState("")
 
 
     //for upload image
-    const onChange = (imageList, addUpdateIndex, e) => {
+    const uploadSingleImage = (imageList, addUpdateIndex, e) => {
         setSingleImages(imageList);
         if (imageList == null) {
             alert("null")
@@ -63,33 +64,36 @@ const CreateRestaurants = () => {
         })
     };
 
-    const onChangee = (imageList, addUpdateIndex) => {
-        setImages(imageList);
-        console.log(imageList)
+    const uploadImages = (imageList, addUpdateIndex) => {
+        setPhotos(imageList);
         if (imageList == null) {
-            alert("null")
+            return;
         };
+        setImages([]);
+        var tempArr = [];
         for (let i = 0; i < imageList.length; i++) {
             let image = imageList[i].file;
-            console.log("===" + image)
+            console.log("image " + image);
 
             const imageRef = ref(storage, `images/${v4() + image.name}`);
             uploadBytes(imageRef, image).then((value) => {
                 getDownloadURL(imageRef).then((url) => {
-                    console.log(url);
-                    setImages(url)
+                    tempArr.push(url);
                 });
             })
         }
+        setImages(tempArr);
+
+        console.log(images);
     };
 
-    const imagesListRef = ref(storage, "menu/");
-    const uploadFile = () => {
-        if (imageUpload == null) return;
-        const imageRef = ref(storage, `menu/${imageUpload.name}`);
-        uploadBytes(imageRef, imageUpload).then((snapshot) => {
+    const menuListRef = ref(storage, "menu/");
+    const uploadMenuFile = (file) => {
+        if (file == null) return;
+        const menuRef = ref(storage, `menu/${file.name}`);
+        uploadBytes(menuRef, file).then((snapshot) => {
             getDownloadURL(snapshot.ref).then((url) => {
-                setImageUrls(() => [url]);
+                setMenuUrls(() => [url]);
                 Swal.fire({
                     position: 'top-end',
                     icon: 'success',
@@ -102,48 +106,48 @@ const CreateRestaurants = () => {
     };
 
     useEffect(() => {
-        listAll(imagesListRef).then((response) => {
+        listAll(menuListRef).then((response) => {
             response.items.forEach((item) => {
                 getDownloadURL(item).then((url) => {
-                    setImageUrls(() => [url]);
+                    setMenuUrls(() => [url]);
                 });
             });
         });
     }, []);
 
     //for addorRemoveInput
-    const handleServiceChange = (e, index) => {
+    const phoneNumberChange = (e, index) => {
         const { value } = e.target;
         const list = [...phoneNumbers];
         list[index] = value;
         setPhoneNumbers(list);
     };
 
-    const handleServiceRemove = (index) => {
+    const phoneNumberRemove = (index) => {
         const list = [...phoneNumbers];
         list.splice(index, 1);
         setPhoneNumbers(list);
     };
 
-    const handleServiceAdd = (e) => {
+    const phoneNumberAdd = (e) => {
         setPhoneNumbers([...phoneNumbers, ""]);
     };
 
-    const handleRoomChange = (e, index) => {
+    const roomChange = (e, index) => {
         const { value } = e.target;
-        const list = [...roomList];
+        const list = [...roomTypes];
         list[index] = value;
-        setRoomList(list);
+        setRoomTypes(list);
     };
 
-    const handleRoomRemove = (index) => {
-        const list = [...roomList];
+    const roomRemove = (index) => {
+        const list = [...roomTypes];
         list.splice(index, 1);
-        setRoomList(list);
+        setRoomTypes(list);
     };
 
-    const handleRoomAdd = () => {
-        setRoomList([...roomList, ""]);
+    const roomAdd = () => {
+        setRoomTypes([...roomTypes, ""]);
     };
 
     function handleChangeLocation(lat, lng) {
@@ -161,12 +165,13 @@ const CreateRestaurants = () => {
         setZoom(DefaultZoom);
     }
 
-    const handleChange = (event) => {
+    const changeMenuInput = (event) => {
         setAge(event.target.value)
     };
 
     const Save = async () => {
         try {
+            console.log(images);
             const docRef = await addDoc(collection(db, "restaurantes"), {
                 name: restaurantName,
                 phoneNumbers: phoneNumbers,
@@ -187,9 +192,10 @@ const CreateRestaurants = () => {
                 password: password,
                 menu: menu,
                 location: new GeoPoint(lat, lng),
-                roomTypes: roomList,
+                roomTypes: roomTypes,
                 thumbImage: thumbImage,
-                images: images
+                images: images,
+                menuUrls: menuUrls
             });
 
             Swal.fire({
@@ -213,6 +219,7 @@ const CreateRestaurants = () => {
         return this;
     }
 
+
     return (
         <div id='CreateRestaurants'>
             <TextField fullWidth id="outlined-basic" label="Restoranın adı" className='mb-4' variant="outlined" onChange={e => setRestaurantName(e.target.value)} />
@@ -221,7 +228,7 @@ const CreateRestaurants = () => {
                 <div key={index} className="row align-items-center justify-content-center">
                     <div className="col-lg-8">
                         <div className="first-division">
-                            <TextField fullWidth id="outlined-basic" onChange={(e) => handleServiceChange(e, index)} label="Mobil nömrə" variant="outlined" />
+                            <TextField fullWidth id="outlined-basic" onChange={(e) => phoneNumberChange(e, index)} label="Mobil nömrə" variant="outlined" />
                         </div>
                     </div>
                     <div className="col-lg-2">
@@ -229,7 +236,7 @@ const CreateRestaurants = () => {
                             {phoneNumbers.length !== 1 && (
                                 <button
                                     type="button"
-                                    onClick={() => handleServiceRemove(index)}
+                                    onClick={() => phoneNumberRemove(index)}
                                     className="remove-btn"
                                 >
                                     <i class="fa-solid fa-trash"></i>
@@ -241,7 +248,7 @@ const CreateRestaurants = () => {
                         {phoneNumbers.length - 1 === index && phoneNumbers.length < 100 && (
                             <button
                                 type="button"
-                                onClick={handleServiceAdd}
+                                onClick={phoneNumberAdd}
                                 className="add-btn"
                             >
                                 <i class="fa-solid fa-plus"></i> <span>Əlavə et</span>
@@ -379,7 +386,7 @@ const CreateRestaurants = () => {
                 <p>Profil şəkli</p>
                 <ImageUploading
                     value={singleImages}
-                    onChange={onChange}
+                    onChange={uploadSingleImage}
                     maxNumber={maxNumber}
                     dataURLKey="data_url"
                 >
@@ -407,7 +414,9 @@ const CreateRestaurants = () => {
                                     <img src={image['data_url']} className="smallphoto" alt="" width="600" />
                                     <div className="image-item__btn-wrapper">
                                         <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                                        <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
+                                        <button onClick={() => (
+                                            onImageRemove(index))
+                                        } className="remove"><i class="fa-solid fa-trash"></i></button>
                                     </div>
                                 </div>
                             ))}
@@ -419,8 +428,8 @@ const CreateRestaurants = () => {
                 <p>Səkillər</p>
                 <ImageUploading
                     multiple
-                    value={images}
-                    onChange={onChangee}
+                    value={photos}
+                    onChange={uploadImages}
                     maxNumber={maxNumber}
                     dataURLKey="data_url"
                 >
@@ -449,7 +458,8 @@ const CreateRestaurants = () => {
                                     <img src={image['data_url']} className="smallphoto" alt="" width="200" />
                                     <div className="image-item__btn-wrapper">
                                         <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                                        <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
+                                        <button onClick={() => (
+                                            onImageRemove(index))} className="remove"><i class="fa-solid fa-trash"></i></button>
                                     </div>
                                 </div>
                             ))}
@@ -464,19 +474,19 @@ const CreateRestaurants = () => {
                         : event.target.value,
                     setMaxAllowedGuests(event.target.value)
                 )} variant="outlined" />
-            {roomList.map((singleRoom, index) => (
+            {roomTypes.map((singleRoom, index) => (
                 <div key={index} className="row align-items-center justify-content-center">
                     <div className="col-lg-8">
                         <div className="first-division">
-                            <TextField fullWidth id="outlined-basic" onChange={(e) => handleRoomChange(e, index)} label="Otaq növləri" variant="outlined" />
+                            <TextField fullWidth id="outlined-basic" onChange={(e) => roomChange(e, index)} label="Otaq növləri" variant="outlined" />
                         </div>
                     </div>
                     <div className="col-lg-2">
                         <div className="second-division">
-                            {roomList.length !== 1 && (
+                            {roomTypes.length !== 1 && (
                                 <button
                                     type="button"
-                                    onClick={() => handleRoomRemove(index)}
+                                    onClick={() => roomRemove(index)}
                                     className="remove-btn"
                                 >
                                     <i class="fa-solid fa-trash"></i>
@@ -485,10 +495,10 @@ const CreateRestaurants = () => {
                         </div>
                     </div>
                     <div className="col-lg-2">
-                        {roomList.length - 1 === index && roomList.length < 100 && (
+                        {roomTypes.length - 1 === index && roomTypes.length < 100 && (
                             <button
                                 type="button"
-                                onClick={handleRoomAdd}
+                                onClick={roomAdd}
                                 className="add-btn"
                             >
                                 <i class="fa-solid fa-plus"></i> <span>Əlavə et</span>
@@ -532,7 +542,7 @@ const CreateRestaurants = () => {
                         id="demo-simple-select"
                         value={age}
                         label="Age"
-                        onChange={handleChange}
+                        onChange={changeMenuInput}
                     >
                         <MenuItem value={10} >Link</MenuItem>
                         <MenuItem value={20}>File</MenuItem>
@@ -541,62 +551,14 @@ const CreateRestaurants = () => {
                         age == 10 ? <TextField fullWidth id="outlined-basic" label="Link" className='mb-4' variant="outlined" onChange={e => setMenu(e.target.value)} /> : ""
                     }
                     {
-                        // age == 20 ? <div className="profilePhoto">
-                        //     <p>Profil şəkli</p>
-                        //     <ImageUploading
-                        //         value={menuPhoto}
-                        //         onChange={onChangeMenu}
-                        //         maxNumber={maxNumber}
-                        //         dataURLKey="data_url"
-                        //     >
-                        //         {({
-                        //             imageList,
-                        //             onImageUpload,
-                        //             onImageRemoveAll,
-                        //             onImageUpdate,
-                        //             onImageRemove,
-                        //             isDragging,
-                        //             dragProps,
-                        //         }) => (
-                        //             <div className="upload__image-wrapper">
-                        //                 <button
-                        //                     style={isDragging ? { color: 'red' } : undefined}
-                        //                     onClick={onImageUpload}
-                        //                     {...dragProps}
-                        //                     className="uploadSinglePhoto"
-                        //                 >
-                        //                     Upload photo
-                        //                 </button>
-                        //                 &nbsp;
-                        //                 {imageList.map((image, index) => (
-                        //                     <div key={index} className="image-item">
-                        //                         <img src={image['data_url']} className="smallphoto" alt="" width="600" />
-                        //                         <div className="image-item__btn-wrapper">
-                        //                             <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                        //                             <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
-                        //                         </div>
-                        //                     </div>
-                        //                 ))}
-                        //             </div>
-                        //         )}
-                        //     </ImageUploading>
-                        // </div> : ""
                         age == 20 ? <div className='fileUpload'>
                             <input
                                 type="file"
-                                onChange={(event) => {
-                                    setImageUpload(event.target.files[0]);
-                                }}
+                                onChange={(event) => { uploadMenuFile(event.target.files[0]) }}
                             /> <br /> <br />
-                            {/* <img width={200} src={imageUrls} alt="" /> <br/> <br/> */}
-
-                            <button onClick={uploadFile}> Upload Image</button>
-
                         </div>
                             : ""
                     }
-
-
                 </FormControl>
             </Box>
             <button onClick={Save} className="submit">Elave et</button>

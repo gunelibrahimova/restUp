@@ -3,17 +3,22 @@ import React, { useEffect, useState } from 'react'
 import './restaurants.scss'
 import ImageUploading from 'react-images-uploading';
 import MapPicker from 'react-google-map-picker';
-import { collection, updateDoc, GeoPoint, doc, getDoc } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { collection, updateDoc, GeoPoint, doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "../../config/firebase";
 import { storage } from "../../config/firebase"
 import { getDownloadURL, listAll, ref, uploadBytes } from "firebase/storage"
 import { v4 } from 'uuid';
 import Swal from 'sweetalert2'
-
-
+import { useLocation } from 'react-router-dom';
 
 const DefaultLocation = { lat: 40.4093, lng: 49.8671 };
 const DefaultZoom = 10;
+
+const override = {
+  display: "block",
+  margin: "0 auto",
+  borderColor: "red",
+};
 
 const UpdateRestaurants = () => {
 
@@ -22,9 +27,9 @@ const UpdateRestaurants = () => {
   const [avgPrice, setAvaragePrice] = useState("")
   const [mainCuisine, setMainCuisine] = useState("")
   const [workingStartsAt, setWorkingStartsAt] = useState(new Date())
-  const [endTime, setEndTime] = useState(new Date())
-  const [reservStartTime, setReservStartTime] = useState(new Date())
-  const [reservEndTime, setReservEndTime] = useState(new Date())
+  const [workingEndsAt, setWorkingEndsAt] = useState(new Date())
+  const [bookingStartsAt, setBookingStartsAt] = useState(new Date())
+  const [bookingEndsAt, setBookingEndsAt] = useState(new Date())
   const [socialNetworkAccount, setSocialNetworkAccount] = useState("")
   const [smokingRooms, setSmokingRooms] = useState("")
   const [nonSmokingRooms, setNonSmokingRooms] = useState("")
@@ -33,23 +38,27 @@ const UpdateRestaurants = () => {
   const [maxAllowedGuests, setMaxAllowedGuests] = useState("")
   const [username, setUserName] = useState("")
   const [password, setPassword] = useState("")
-  const [defaultLocation, setDefaultLocation] = useState(DefaultLocation);
-  const [lat, setLat] = useState(defaultLocation.lat)
-  const [lng, setLng] = useState(defaultLocation.lng)
+  const [lat, setLat] = useState(DefaultLocation.lat)
+  const [lng, setLng] = useState(DefaultLocation.lng)
   const [phoneNumbers, setPhoneNumbers] = useState([{ mobile: "" }]);
-  const [roomList, setRoomList] = useState([{ room: "" }]);
+  const [roomTypes, setRoomTypes] = useState([{ room: "" }]);
   const [menu, setMenu] = useState("");
   const [images, setImages] = React.useState([]);
   const [singleImages, setSingleImages] = React.useState([]);
-  const [location, setLocation] = useState(defaultLocation);
+  const [location, setLocation] = useState(DefaultLocation);
   const [zoom, setZoom] = useState(DefaultZoom);
   const [age, setAge] = React.useState('');
   const maxNumber = 69;
-  const [imageUpload, setImageUpload] = useState(null);
-  const [imageUrls, setImageUrls] = useState([]);
+  const [photos, setPhotos] = React.useState([]);
+  const [menuUrls, setMenuUrls] = useState([]);
   const [thumbImage, setThumbImage] = useState("")
+  const [loading, setLoading] = useState(true);
+  let [color, setColor] = useState("#ffffff");
 
-  const onChange = (imageList, addUpdateIndex, e) => {
+  const locationn = useLocation()
+
+  //for upload image
+  const uploadSingleImage = (imageList, addUpdateIndex, e) => {
     setSingleImages(imageList);
     if (imageList == null) {
       alert("null")
@@ -63,32 +72,34 @@ const UpdateRestaurants = () => {
     })
   };
 
-  const onChangee = (imageList, addUpdateIndex) => {
-    setImages(imageList);
-    console.log(imageList)
+  const uploadImages = (imageList, addUpdateIndex) => {
+    setPhotos(imageList);
     if (imageList == null) {
-      alert("null")
+      return;
     };
+    setImages([]);
+    var tempArr = [];
     for (let i = 0; i < imageList.length; i++) {
       let image = imageList[i].file;
-      console.log("===" + image)
-
+      console.log("image " + image);
       const imageRef = ref(storage, `images/${v4() + image.name}`);
       uploadBytes(imageRef, image).then((value) => {
         getDownloadURL(imageRef).then((url) => {
-          console.log(url);
+          tempArr.push(url);
         });
       })
     }
+    setImages(tempArr);
+
   };
 
-  const imagesListRef = ref(storage, "menu/");
-  const uploadFile = () => {
-    if (imageUpload == null) return;
-    const imageRef = ref(storage, `menu/${imageUpload.name}`);
-    uploadBytes(imageRef, imageUpload).then((snapshot) => {
+  const menuListRef = ref(storage, "menu/");
+  const uploadMenuFile = (file) => {
+    if (file == null) return;
+    const menuRef = ref(storage, `menu/${file.name}`);
+    uploadBytes(menuRef, file).then((snapshot) => {
       getDownloadURL(snapshot.ref).then((url) => {
-        setImageUrls(() => [url]);
+        setMenuUrls(() => [url]);
         Swal.fire({
           position: 'top-end',
           icon: 'success',
@@ -101,48 +112,48 @@ const UpdateRestaurants = () => {
   };
 
   useEffect(() => {
-    listAll(imagesListRef).then((response) => {
+    listAll(menuListRef).then((response) => {
       response.items.forEach((item) => {
         getDownloadURL(item).then((url) => {
-          setImageUrls(() => [url]);
+          setMenuUrls(() => [url]);
         });
       });
     });
   }, []);
 
   //for addorRemoveInput
-  const handleServiceChange = (e, index) => {
+  const phoneNumberChange = (e, index) => {
     const { value } = e.target;
     const list = [...phoneNumbers];
     list[index] = value;
     setPhoneNumbers(list);
   };
 
-  const handleServiceRemove = (index) => {
+  const phoneNumberRemove = (index) => {
     const list = [...phoneNumbers];
     list.splice(index, 1);
     setPhoneNumbers(list);
   };
 
-  const handleServiceAdd = (e) => {
+  const phoneNumberAdd = (e) => {
     setPhoneNumbers([...phoneNumbers, ""]);
   };
 
-  const handleRoomChange = (e, index) => {
+  const roomChange = (e, index) => {
     const { value } = e.target;
-    const list = [...roomList];
+    const list = [...roomTypes];
     list[index] = value;
-    setRoomList(list);
+    setRoomTypes(list);
   };
 
-  const handleRoomRemove = (index) => {
-    const list = [...roomList];
+  const roomRemove = (index) => {
+    const list = [...roomTypes];
     list.splice(index, 1);
-    setRoomList(list);
+    setRoomTypes(list);
   };
 
-  const handleRoomAdd = () => {
-    setRoomList([...roomList, ""]);
+  const roomAdd = () => {
+    setRoomTypes([...roomTypes, ""]);
   };
 
   function handleChangeLocation(lat, lng) {
@@ -156,174 +167,142 @@ const UpdateRestaurants = () => {
   }
 
   function handleResetLocation() {
-    setDefaultLocation({ ...DefaultLocation });
+    setLocation({ ...DefaultLocation });
     setZoom(DefaultZoom);
   }
 
-  const handleChange = (event) => {
+  const changeMenuInput = (event) => {
     setAge(event.target.value)
   };
 
+  const addData = async () => {
+    const docRef = doc(db, "restaurantes", locationn.state.id);
+    const docSnap = await getDoc(docRef)
+    const data = docSnap.data()
 
-  // const Save = async (id) => {
-  //   try {
-  //     const docRef = await updateDoc(collection(db, "restaurantes", id), {
-  //       name: restaurantName,
-  //       phoneNumbers: number,
-  //       address: address,
-  //       avgPrice: parseFloat(avaragePrice),
-  //       mainCuisine: kitchen,
-  //       workingStartsAt: startTime,
-  //       workingEndsAt: endTime,
-  //       bookingStartsAt: reservStartTime,
-  //       bookingEndsAt: reservEndTime,
-  //       socialNetworkAccount: social,
-  //       smokingRooms: smookTrue,
-  //       nonSmokingRooms: smookFalse,
-  //       description: description,
-  //       bookingAvailable: bool,
-  //       maxAllowedGuests: parseFloat(guest),
-  //       username: userName,
-  //       password: password,
-  //       menu: menuLink,
-  //       location: new GeoPoint(lat, lng),
-  //       roomTypes: roomList,
-  //       thumbImage: thumbImage
-  //     });
+    const newFields = {
+      address: data.address,
+      name: data.name,
+      phoneNumbers: data.phoneNumbers,
+      avgPrice: parseFloat(data.avgPrice),
+      mainCuisine: data.mainCuisine,
+      workingStartsAt: data.workingStartsAt,
+      workingEndsAt: data.workingEndsAt,
+      bookingStartsAt: data.bookingStartsAt,
+      bookingEndsAt: data.bookingEndsAt,
+      socialNetworkAccount: data.socialNetworkAccount,
+      smokingRooms: data.smokingRooms,
+      nonSmokingRooms: data.nonSmokingRooms,
+      description: data.description,
+      bookingAvailable: data.bookingAvailable,
+      maxAllowedGuests: parseFloat(data.maxAllowedGuests),
+      username: data.username,
+      password: data.password,
+      menu: data.menu,
+      location: new GeoPoint(data.location.latitude, data.location.longitude),
+      roomTypes: data.roomTypes,
+      thumbImage: data.thumbImage,
+      images: data.images,
+    };
 
-  //     Swal.fire({
-  //       position: 'top-end',
-  //       icon: 'success',
-  //       title: 'Məlumat əlavə olundu',
-  //       showConfirmButton: false,
-  //       timer: 1500
-  //     })
-  //   } catch (err) {
-  //     console.log(err)
-  //     Swal.fire({
-  //       icon: 'error',
-  //       title: 'Oops...',
-  //       text: 'Xəta baş verdi',
-  //     })
-  //   }
-  // }
-
-
-  // const updateUser = async () => {
-  //   // try {
-  //   //   const userDoc = doc(db, "restaurantes", id);
-  //   //   const newFields = {
-  //   //     name: restaurantName,
-  //   //     phoneNumbers: number,
-  //   //     address: address,
-  //   //     avgPrice: parseFloat(avaragePrice),
-  //   //     mainCuisine: kitchen,
-  //   //     workingStartsAt: startTime,
-  //   //     workingEndsAt: endTime,
-  //   //     bookingStartsAt: reservStartTime,
-  //   //     bookingEndsAt: reservEndTime,
-  //   //     socialNetworkAccount: social,
-  //   //     smokingRooms: smookTrue,
-  //   //     nonSmokingRooms: smookFalse,
-  //   //     description: description,
-  //   //     bookingAvailable: bool,
-  //   //     maxAllowedGuests: parseFloat(guest),
-  //   //     username: userName,
-  //   //     password: password,
-  //   //     menu: menuLink,
-  //   //     location: new GeoPoint(lat, lng),
-  //   //     roomTypes: roomList,
-  //   //     thumbImage: thumbImage
-  //   //   };
-  //   //   await updateDoc(userDoc, newFields);
-  //   // }
-  //   // catch (err) {
-  //   //   console.log(err)
-  //   // }
-  //   try {
-  //     const docRef = doc(db, "restaurantes", "MxUTT8dudxNTz5FALYTH");
-  //     const docSnap = await getDoc(docRef)
-  //     const data = docSnap.data()
-
-
-  //     const newFields = {
-  //      address: data.address,
-  //     };
-
-  //     setAddress(newFields.address)
-
-  //     console.log(newFields.address)
-
-  //     await updateDoc(docRef, newFields);
-  //   }
-  //   catch(err){
-  //     console.log(err)
-  //   }
+    setRestaurantName(newFields.name)
+    setAddress(newFields.address)
+    setAvaragePrice(newFields.avgPrice)
+    setMainCuisine(newFields.mainCuisine)
+    setWorkingStartsAt(newFields.workingStartsAt.toDate())
+    setWorkingEndsAt(newFields.workingEndsAt.toDate())
+    setBookingStartsAt(newFields.bookingStartsAt.toDate())
+    setBookingEndsAt(newFields.bookingEndsAt.toDate())
+    setSocialNetworkAccount(newFields.socialNetworkAccount)
+    setSmokingRooms(newFields.smokingRooms)
+    setNonSmokingRooms(newFields.nonSmokingRooms)
+    setDescription(newFields.description)
+    setBookingAvailable(newFields.bookingAvailable)
+    setMaxAllowedGuests(newFields.maxAllowedGuests)
+    setUserName(newFields.username)
+    setPassword(newFields.password)
+    setMenu(newFields.menu)
+    setPhoneNumbers(newFields.phoneNumbers)
+    setRoomTypes(newFields.roomTypes)
+    setThumbImage(newFields.thumbImage)
+    setImages(newFields.images)
+    setLat(newFields.location.latitude)
+    setLng(newFields.location.longitude)
+    setLocation({ lat: newFields.location.latitude, lng: newFields.location.longitude });
 
 
 
 
-  //   // if (docSnap.exists()) {
-  //   //   const data = docSnap.data()
-  //   //   console.log("Document data:", docSnap.data());
-  //   // } else {
-  //   //   // doc.data() will be undefined in this case
-  //   //   console.log("No such document!");
-  //   // }
+  }
 
-  // };
 
-  useEffect(() => {
-    const addData = async () => {
-     
-      const docRef = doc(db, "restaurantes", "dhsJctPZlYpIydqh8a1C");
+  const updateUser = async () => {
+    try {
+      const docRef = doc(db, "restaurantes", locationn.state.id);
       const docSnap = await getDoc(docRef)
       const data = docSnap.data()
 
-      console.log(data);
+      console.log(images);
+
       const newFields = {
-        address: data.address,
-        name: data.name,
-        phoneNumbers: data.phoneNumbers,
-        avgPrice: parseFloat(data.avgPrice),
-        mainCuisine: data.mainCuisine,
-        workingStartsAt: data.workingStartsAt,
-        workingEndsAt: endTime,
-        bookingStartsAt: reservStartTime,
-        bookingEndsAt: reservEndTime,
-        socialNetworkAccount: data.socialNetworkAccount,
-        smokingRooms: data.smokingRooms,
-        nonSmokingRooms: data.nonSmokingRooms,
-        description: data.description,
-        bookingAvailable: data.bookingAvailable,
-        maxAllowedGuests: parseFloat(data.maxAllowedGuests),
-        username: data.username,
-        password: data.password,
-        menu: data.menu,
-        location: new GeoPoint(lat, lng),
-        roomTypes: roomList,
-        thumbImage: thumbImage
+        address: address,
+        name: restaurantName,
+        phoneNumbers: phoneNumbers,
+        avgPrice: parseFloat(avgPrice),
+        mainCuisine: mainCuisine,
+        workingStartsAt: workingStartsAt,
+        workingEndsAt: workingEndsAt,
+        bookingStartsAt: bookingStartsAt,
+        bookingEndsAt: bookingEndsAt,
+        socialNetworkAccount: socialNetworkAccount,
+        smokingRooms: smokingRooms,
+        nonSmokingRooms: nonSmokingRooms,
+        description: description,
+        bookingAvailable: bookingAvailable,
+        maxAllowedGuests: parseFloat(maxAllowedGuests),
+        username: username,
+        password: password,
+        menu: menu,
+        location: new GeoPoint(location.lat, location.lng),
+        roomTypes: roomTypes,
+        thumbImage: thumbImage,
+        images: images,
+        menuUrls: menuUrls
       };
-      setRestaurantName(newFields.name)
-      setAddress(newFields.address)
-      setAvaragePrice(newFields.avgPrice)
-      setMainCuisine(newFields.mainCuisine)
-      // setWorkingStartsAt(newFields.workingStartsAt)
-      setSocialNetworkAccount(newFields.socialNetworkAccount)
-      setSmokingRooms(newFields.smokingRooms)
-      setNonSmokingRooms(newFields.nonSmokingRooms)
-      setDescription(newFields.description)
-      setBookingAvailable(newFields.bookingAvailable)
-      setMaxAllowedGuests(newFields.maxAllowedGuests)
-      setUserName(newFields.username)
-      setPassword(newFields.password)
-      setMenu(newFields.menu)
-      setPhoneNumbers(newFields.phoneNumbers)
 
+      await updateDoc(docRef, newFields)
+        .then(docRef => {
+          console.log("Value of an Existing Document Field has been updated");
+        })
     }
+    catch (err) {
+      console.log(err)
+    }
+  };
 
+  useEffect(() => {
     addData()
-  },[])
+  }, [])
+
+  function fmt(date, format = 'YYYY-MM-DDThh:mm:ss') {
+    const pad2 = (n) => n.toString().padStart(2, '0');
+
+    const map = {
+      YYYY: date.getFullYear(),
+      MM: pad2(date.getMonth() + 1),
+      DD: pad2(date.getDate()),
+      hh: pad2(date.getHours()),
+      mm: pad2(date.getMinutes()),
+      ss: pad2(date.getSeconds()),
+    };
+
+    return Object.entries(map).reduce((prev, entry) => prev.replace(...entry), format);
+  }
+
+  Date.prototype.addHours = function (h) {
+    this.setHours(this.getHours() + h);
+    return this;
+  }
 
 
   return (
@@ -334,7 +313,7 @@ const UpdateRestaurants = () => {
         <div key={index} className="row align-items-center justify-content-center">
           <div className="col-lg-8">
             <div className="first-division">
-              <TextField fullWidth id="outlined-basic" value={phoneNumbers} onChange={(e) => handleServiceChange(e, index)} label="Mobil nömrə" variant="outlined" />
+              <TextField fullWidth id="outlined-basic" value={phoneNumbers[index]} onChange={(e) => phoneNumberChange(e, index)} label="Mobil nömrə" variant="outlined" />
             </div>
           </div>
           <div className="col-lg-2">
@@ -342,7 +321,7 @@ const UpdateRestaurants = () => {
               {phoneNumbers.length !== 1 && (
                 <button
                   type="button"
-                  onClick={() => handleServiceRemove(index)}
+                  onClick={() => phoneNumberRemove(index)}
                   className="remove-btn"
                 >
                   <i class="fa-solid fa-trash"></i>
@@ -354,7 +333,7 @@ const UpdateRestaurants = () => {
             {phoneNumbers.length - 1 === index && phoneNumbers.length < 100 && (
               <button
                 type="button"
-                onClick={handleServiceAdd}
+                onClick={phoneNumberAdd}
                 className="add-btn"
               >
                 <i class="fa-solid fa-plus"></i> <span>Əlavə et</span>
@@ -375,7 +354,7 @@ const UpdateRestaurants = () => {
               label="Başlama saatı"
               type="time"
               className='startTime'
-              value={workingStartsAt}
+              value={fmt(workingStartsAt, 'hh:mm')}
               onChange={(e) => (
                 setWorkingStartsAt(e.target.valueAsDate.addHours(-4))
               )}
@@ -392,8 +371,9 @@ const UpdateRestaurants = () => {
               id="time"
               label="Bitmə saatı"
               type="time"
+              value={fmt(workingEndsAt, 'hh:mm')}
               onChange={(e) => (
-                setEndTime(e.target.valueAsDate.addHours(-4))
+                setWorkingEndsAt(e.target.valueAsDate.addHours(-4))
               )}
               InputLabelProps={{
                 shrink: true,
@@ -410,9 +390,10 @@ const UpdateRestaurants = () => {
               id="time"
               label="Başlama saatı"
               type="time"
+              value={fmt(bookingStartsAt, 'hh:mm')}
               className='startTime'
               onChange={(e) => (
-                setReservStartTime(e.target.valueAsDate.addHours(-4))
+                setBookingStartsAt(e.target.valueAsDate.addHours(-4))
               )}
               InputLabelProps={{
                 shrink: true,
@@ -422,13 +403,13 @@ const UpdateRestaurants = () => {
               }}
               sx={{ width: 150 }}
             />
-
             <TextField
               id="time"
               label="Bitmə saatı"
               type="time"
+              value={fmt(bookingEndsAt, 'hh:mm')}
               onChange={(e) => (
-                setReservEndTime(e.target.valueAsDate.addHours(-4))
+                setBookingEndsAt(e.target.valueAsDate.addHours(-4))
               )}
 
               InputLabelProps={{
@@ -452,7 +433,7 @@ const UpdateRestaurants = () => {
                 event.target.value < 0
                   ? (event.target.value = 0)
                   : event.target.value,
-                  setSmokingRooms(event.target.value)
+                setSmokingRooms(event.target.value)
               )} variant="outlined" />
           </div>
           <div className="col-lg-6">
@@ -461,7 +442,7 @@ const UpdateRestaurants = () => {
                 event.target.value < 0
                   ? (event.target.value = 0)
                   : event.target.value,
-                  setNonSmokingRooms(event.target.value)
+                setNonSmokingRooms(event.target.value)
               )}
               label="Siqaret çəkilməyən otaqlar" className='mb-4' type="number"
               variant="outlined" />
@@ -492,9 +473,10 @@ const UpdateRestaurants = () => {
       </div>
       <div className="profilePhoto">
         <p>Profil şəkli</p>
+
         <ImageUploading
           value={singleImages}
-          onChange={onChange}
+          onChange={uploadSingleImage}
           maxNumber={maxNumber}
           dataURLKey="data_url"
         >
@@ -517,25 +499,21 @@ const UpdateRestaurants = () => {
                 Upload photo
               </button>
               &nbsp;
-              {imageList.map((image, index) => (
-                <div key={index} className="image-item">
-                  <img src={image['data_url']} className="smallphoto" alt="" width="600" />
-                  <div className="image-item__btn-wrapper">
-                    <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                    <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
-                  </div>
-                </div>
-              ))}
+              <div className="image-item">
+                <img src={thumbImage} className="smallphoto" alt="" width="600" />
+              </div>
             </div>
           )}
+
         </ImageUploading>
+
       </div>
       <div className="photos">
         <p>Səkillər</p>
         <ImageUploading
           multiple
           value={images}
-          onChange={onChangee}
+          onChange={uploadImages}
           maxNumber={maxNumber}
           dataURLKey="data_url"
         >
@@ -559,39 +537,56 @@ const UpdateRestaurants = () => {
 
               </button>
               &nbsp;
-              {imageList.map((image, index) => (
+              {/* {imageList.map((image, index) => (
                 <div key={index} className="image-item">
-                  <img src={image['data_url']} className="smallphoto" alt="" width="200" />
+                  <img src={image} className="smallphoto" alt="" width="200" />
                   <div className="image-item__btn-wrapper">
                     <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
                     <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
                   </div>
                 </div>
-              ))}
+              ))} */}
+
+
+              {
+                images.map((image) => (
+                  <div className="image-item">
+                    <img className='mt-2' width={200} src={image} alt="" />
+                  </div>
+                ))
+              }
             </div>
           )}
         </ImageUploading>
+
+
+        {/* {
+          images.map((i) => (
+            <img width={100} src={i} alt="" />
+          ))
+        } */}
+
       </div>
       <TextField fullWidth id="outlined-basic" label="İcazə verilən ən çox qonaq sayı" value={maxAllowedGuests} className='mb-4 mt-4' type="number"
         onChange={(event) => (
           event.target.value < 0
             ? (event.target.value = 0)
             : event.target.value,
-            setMaxAllowedGuests(event.target.value)
+          setMaxAllowedGuests(event.target.value)
         )} variant="outlined" />
-      {roomList.map((singleRoom, index) => (
+      {roomTypes.map((singleRoom, index) => (
         <div key={index} className="row align-items-center justify-content-center">
           <div className="col-lg-8">
             <div className="first-division">
-              <TextField fullWidth id="outlined-basic" onChange={(e) => handleRoomChange(e, index)} label="Otaq növləri" variant="outlined" />
+              <TextField fullWidth id="outlined-basic" value={roomTypes[index]} onChange={(e) => roomChange(e, index)} label="Otaq növləri" variant="outlined" />
             </div>
           </div>
           <div className="col-lg-2">
             <div className="second-division">
-              {roomList.length !== 1 && (
+              {roomTypes.length !== 1 && (
                 <button
                   type="button"
-                  onClick={() => handleRoomRemove(index)}
+                  onClick={() => roomRemove(index)}
                   className="remove-btn"
                 >
                   <i class="fa-solid fa-trash"></i>
@@ -600,10 +595,10 @@ const UpdateRestaurants = () => {
             </div>
           </div>
           <div className="col-lg-2">
-            {roomList.length - 1 === index && roomList.length < 100 && (
+            {roomTypes.length - 1 === index && roomTypes.length < 100 && (
               <button
                 type="button"
-                onClick={handleRoomAdd}
+                onClick={roomAdd}
                 className="add-btn"
               >
                 <i class="fa-solid fa-plus"></i> <span>Əlavə et</span>
@@ -628,7 +623,8 @@ const UpdateRestaurants = () => {
       <label>Longitute:</label><input type='text' value={location.lng} disabled />
       <label>Zoom:</label><input type='text' value={zoom} disabled />
 
-      <MapPicker defaultLocation={defaultLocation}
+      <MapPicker
+        defaultLocation={location}
         zoom={zoom}
         mapTypeId="roadmap"
         style={{ height: '700px' }}
@@ -647,7 +643,7 @@ const UpdateRestaurants = () => {
             id="demo-simple-select"
             value={age}
             label="Age"
-            onChange={handleChange}
+            onChange={changeMenuInput}
           >
             <MenuItem value={10} >Link</MenuItem>
             <MenuItem value={20}>File</MenuItem>
@@ -656,66 +652,17 @@ const UpdateRestaurants = () => {
             age == 10 ? <TextField fullWidth id="outlined-basic" label="Link" className='mb-4' variant="outlined" value={menu} onChange={e => setMenu(e.target.value)} /> : ""
           }
           {
-            // age == 20 ? <div className="profilePhoto">
-            //     <p>Profil şəkli</p>
-            //     <ImageUploading
-            //         value={menuPhoto}
-            //         onChange={onChangeMenu}
-            //         maxNumber={maxNumber}
-            //         dataURLKey="data_url"
-            //     >
-            //         {({
-            //             imageList,
-            //             onImageUpload,
-            //             onImageRemoveAll,
-            //             onImageUpdate,
-            //             onImageRemove,
-            //             isDragging,
-            //             dragProps,
-            //         }) => (
-            //             <div className="upload__image-wrapper">
-            //                 <button
-            //                     style={isDragging ? { color: 'red' } : undefined}
-            //                     onClick={onImageUpload}
-            //                     {...dragProps}
-            //                     className="uploadSinglePhoto"
-            //                 >
-            //                     Upload photo
-            //                 </button>
-            //                 &nbsp;
-            //                 {imageList.map((image, index) => (
-            //                     <div key={index} className="image-item">
-            //                         <img src={image['data_url']} className="smallphoto" alt="" width="600" />
-            //                         <div className="image-item__btn-wrapper">
-            //                             <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-            //                             <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
-            //                         </div>
-            //                     </div>
-            //                 ))}
-            //             </div>
-            //         )}
-            //     </ImageUploading>
-            // </div> : ""
             age == 20 ? <div className='fileUpload'>
               <input
                 type="file"
-                onChange={(event) => {
-                  setImageUpload(event.target.files[0]);
-                }}
+                onChange={(event) => { uploadMenuFile(event.target.files[0]) }}
               /> <br /> <br />
-              {/* <img width={200} src={imageUrls} alt="" /> <br/> <br/> */}
-
-              <button onClick={uploadFile}> Upload Image</button>
-
             </div>
               : ""
           }
-
-
         </FormControl>
       </Box>
-      <button className="submit">Elave et</button>
-
+      <button onClick={updateUser} className="submit">Elave et</button>
     </div>
   )
 }

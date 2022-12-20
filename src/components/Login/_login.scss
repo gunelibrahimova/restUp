@@ -57,5 +57,16 @@
             padding: 6px 12px;
             line-height: 1.42857143;
         }
+        .button{
+            text-align: center;
+            button{
+                border: none;
+                background-color: #0D6EFD;
+                margin: 15px 0px;
+                padding: 10px 100px;
+                color: white;
+                border-radius: 5px;
+            }
+        }
     }
 }

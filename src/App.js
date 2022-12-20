@@ -3,7 +3,7 @@ import {
   useState
 } from 'react';
 import { ClipLoader } from 'react-spinners';
-import './App.css';
+import './App.scss';
 import Login from './components/Login/Login';
 import SideBar from './components/SideBar/SideBar';
 import {
@@ -11,7 +11,7 @@ import {
 } from './config/firebase';
 import MyRouter from './router/MyRouter';
 
-const override: CSSProperties = {
+const override = {
   display: "block",
   margin: "0 auto",
   borderColor: "red",
@@ -26,29 +26,34 @@ function App() {
 
 
   useEffect(() => {
-      const unsubscribe = auth.onAuthStateChanged(userAuth => {
-        if (userAuth != null) {
-          console.log('userAuth', userAuth)
-          const user = {
-            uid: userAuth.uid,
-            email: userAuth.email
-          }
-          setUser(user)
-        } else {
-          setUser(null)
+    const unsubscribe = auth.onAuthStateChanged(userAuth => {
+      if (userAuth == null) {
+        setLoading(true)
+      }
+      else{
+         if (userAuth != null) {
+        console.log('userAuth', userAuth)
+        const user = {
+          uid: userAuth.uid,
+          email: userAuth.email
         }
-      })
-      setLoading(false)
-      return unsubscribe 
+        setUser(user)
+      } else {
+        setUser(null)
+      }
+      }
+     
+    })
+   
+    return unsubscribe
      
   }, [])
 
 
   return ( 
-    <div className = "App" >
+    <div id = "App" >
 
     {
-      
       user ? <div className='container-fluid'>
       <div className="row">
         <div className="col-lg-3 p-0">
@@ -59,6 +64,7 @@ function App() {
         </div>
       </div>
     </div> : loading ? <ClipLoader
+        className='sipnner'
         color={color}
         loading={loading}
         cssOverride={override}
@@ -67,8 +73,6 @@ function App() {
         data-testid="loader"
       /> :  <Login/>
     }
-
-
     </div>
   );
 }
