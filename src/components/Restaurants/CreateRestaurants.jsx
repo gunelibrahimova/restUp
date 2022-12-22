@@ -46,16 +46,9 @@ const CreateRestaurants = () => {
     const [menuUrls, setMenuUrls] = useState([]);
     const [thumbImage, setThumbImage] = useState("")
 
-    // const [images, setThumbImage] = useState("")
-
-
     //for upload image
-    const uploadSingleImage = (imageList, addUpdateIndex, e) => {
-        setSingleImages(imageList);
-        if (imageList == null) {
-            alert("null")
-        };
-        let image = imageList[0].file;
+    const uploadThumbImage = (image) => {
+        if (image == null) return;
         const imageRef = ref(storage, `images/${v4() + image.name}`);
         uploadBytes(imageRef, image).then((value) => {
             getDownloadURL(imageRef).then((url) => {
@@ -64,28 +57,25 @@ const CreateRestaurants = () => {
         })
     };
 
-    const uploadImages = (imageList, addUpdateIndex) => {
-        setPhotos(imageList);
-        if (imageList == null) {
-            return;
-        };
-        setImages([]);
-        var tempArr = [];
-        for (let i = 0; i < imageList.length; i++) {
-            let image = imageList[i].file;
-            console.log("image " + image);
-
+    const uploadImages = async (imageFiles) => {
+        if (imageFiles == null) return;
+        for (let i = 0; i < imageFiles.length; i++) {
+            let image = imageFiles[i];
             const imageRef = ref(storage, `images/${v4() + image.name}`);
-            uploadBytes(imageRef, image).then((value) => {
+            await uploadBytes(imageRef, image).then((value) => {
                 getDownloadURL(imageRef).then((url) => {
-                    tempArr.push(url);
+                    images.push(url);
+                    setImages([...images]);
                 });
             })
         }
-        setImages(tempArr);
-
-        console.log(images);
     };
+
+
+    const removeImagesAtIndex = (index) => {
+        images.splice(index, 1);
+        setImages([...images]);
+    }
 
     const menuListRef = ref(storage, "menu/");
     const uploadMenuFile = (file) => {
@@ -384,88 +374,92 @@ const CreateRestaurants = () => {
             </div>
             <div className="profilePhoto">
                 <p>Profil şəkli</p>
-                <ImageUploading
-                    value={singleImages}
-                    onChange={uploadSingleImage}
-                    maxNumber={maxNumber}
-                    dataURLKey="data_url"
-                >
-                    {({
-                        imageList,
-                        onImageUpload,
-                        onImageRemoveAll,
-                        onImageUpdate,
-                        onImageRemove,
-                        isDragging,
-                        dragProps,
-                    }) => (
-                        <div className="upload__image-wrapper">
-                            <button
-                                style={isDragging ? { color: 'red' } : undefined}
-                                onClick={onImageUpload}
-                                {...dragProps}
-                                className="uploadSinglePhoto"
-                            >
-                                Upload photo
-                            </button>
-                            &nbsp;
-                            {imageList.map((image, index) => (
-                                <div key={index} className="image-item">
-                                    <img src={image['data_url']} className="smallphoto" alt="" width="600" />
-                                    <div className="image-item__btn-wrapper">
-                                        <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                                        <button onClick={() => (
-                                            onImageRemove(index))
-                                        } className="remove"><i class="fa-solid fa-trash"></i></button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </ImageUploading>
+                <div class="fileUpload">
+                    <input
+                        multiple
+                        type="file"
+                        id='upload_image'
+                        className='upload-images'
+                        onChange={(event) => { uploadThumbImage(event.target.files[0]) }}
+                    />
+                    <label class="file-input__label" for="upload_image">
+                        <span>Upload file</span></label>
+                </div>
+                <img src={thumbImage} className="smallphoto" alt="" width="400" />
             </div>
             <div className="photos">
                 <p>Səkillər</p>
-                <ImageUploading
-                    multiple
-                    value={photos}
-                    onChange={uploadImages}
-                    maxNumber={maxNumber}
-                    dataURLKey="data_url"
-                >
-                    {({
-                        imageList,
-                        onImageUpload,
-                        onImageRemoveAll,
-                        onImageUpdate,
-                        onImageRemove,
-                        isDragging,
-                        dragProps,
-                    }) => (
-                        <div className="upload__image-wrapper">
-                            <button
-                                style={isDragging ? { color: 'red' } : undefined}
-                                onClick={onImageUpload}
-                                {...dragProps}
-                                className="uploadSinglePhoto"
-                            >
-                                Click or Drop here
 
+                <div className='fileUpload'>
+                    <div class="file-input">
+                        <input
+                            multiple
+                            type="file"
+                            id='upload_images'
+                            className='upload-images'
+                            onChange={(event) => { uploadImages(event.target.files) }}
+                        />
+                        <label class="file-input__label" for="upload_images">
+                            <span>Upload file</span></label
+                        >
+                    </div>
+                    {images.map((image, index) => (
+                        <div key={index} className="image-item">
+                            <img src={image} className="smallphoto" alt="" width="200" />
+                            <button
+                                type="button"
+                                onClick={() => removeImagesAtIndex(index)}
+                                className="remove-btn"
+                            >
+                                <i class="fa-solid fa-trash"></i>
                             </button>
-                            &nbsp;
-                            {imageList.map((image, index) => (
-                                <div key={index} className="image-item">
-                                    <img src={image['data_url']} className="smallphoto" alt="" width="200" />
-                                    <div className="image-item__btn-wrapper">
-                                        <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                                        <button onClick={() => (
-                                            onImageRemove(index))} className="remove"><i class="fa-solid fa-trash"></i></button>
-                                    </div>
-                                </div>
-                            ))}
                         </div>
-                    )}
-                </ImageUploading>
+                    ))}
+
+
+                </div>
+                {/* <ImageUploading
+          multiple
+          value={photos}
+          onChange={uploadImages}
+          maxNumber={maxNumber}
+          dataURLKey="data_url"
+        >
+          {({
+            imageList,
+            onImageUpload,
+            onImageRemoveAll,
+            onImageUpdate,
+            onImageRemove,
+            isDragging,
+            dragProps,
+          }) => (
+            <div className="upload__image-wrapper">
+              <button
+                style={isDragging ? { color: 'red' } : undefined}
+                onClick={onImageUpload}
+                {...dragProps}
+                className="uploadSinglePhoto"
+              >
+                Click or Drop here
+              </button>
+              &nbsp;
+              {images.map((image, index) => (
+                <div key={index} className="image-item">
+                  <img src={image} className="smallphoto" alt="" width="200" />
+                </div>
+              ))}
+
+              {imageList.map((image, index) => (
+                <div key={index} className="image-item">
+                  <img src={image['data_url']} className="smallphoto" alt="" width="200" />
+                </div>
+              ))}
+            </div>
+          )}
+        </ImageUploading> */}
+
+
             </div>
             <TextField fullWidth id="outlined-basic" label="İcazə verilən ən çox qonaq sayı" className='mb-4 mt-4' type="number"
                 onChange={(event) => (
@@ -553,6 +547,7 @@ const CreateRestaurants = () => {
                     {
                         age == 20 ? <div className='fileUpload'>
                             <input
+                                multiple
                                 type="file"
                                 onChange={(event) => { uploadMenuFile(event.target.files[0]) }}
                             /> <br /> <br />

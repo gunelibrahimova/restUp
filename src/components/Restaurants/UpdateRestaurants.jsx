@@ -10,15 +10,11 @@ import { getDownloadURL, listAll, ref, uploadBytes } from "firebase/storage"
 import { v4 } from 'uuid';
 import Swal from 'sweetalert2'
 import { useLocation } from 'react-router-dom';
+import { async } from '@firebase/util';
 
 const DefaultLocation = { lat: 40.4093, lng: 49.8671 };
 const DefaultZoom = 10;
 
-const override = {
-  display: "block",
-  margin: "0 auto",
-  borderColor: "red",
-};
 
 const UpdateRestaurants = () => {
 
@@ -43,27 +39,19 @@ const UpdateRestaurants = () => {
   const [phoneNumbers, setPhoneNumbers] = useState([{ mobile: "" }]);
   const [roomTypes, setRoomTypes] = useState([{ room: "" }]);
   const [menu, setMenu] = useState("");
-  const [images, setImages] = React.useState([]);
-  const [singleImages, setSingleImages] = React.useState([]);
+  const [images, setImages] = useState([]);
   const [location, setLocation] = useState(DefaultLocation);
   const [zoom, setZoom] = useState(DefaultZoom);
   const [age, setAge] = React.useState('');
-  const maxNumber = 69;
-  const [photos, setPhotos] = React.useState([]);
   const [menuUrls, setMenuUrls] = useState([]);
   const [thumbImage, setThumbImage] = useState("")
-  const [loading, setLoading] = useState(true);
-  let [color, setColor] = useState("#ffffff");
+
 
   const locationn = useLocation()
 
   //for upload image
-  const uploadSingleImage = (imageList, addUpdateIndex, e) => {
-    setSingleImages(imageList);
-    if (imageList == null) {
-      alert("null")
-    };
-    let image = imageList[0].file;
+  const uploadThumbImage = (image) => {
+    if (image == null) return;
     const imageRef = ref(storage, `images/${v4() + image.name}`);
     uploadBytes(imageRef, image).then((value) => {
       getDownloadURL(imageRef).then((url) => {
@@ -72,26 +60,24 @@ const UpdateRestaurants = () => {
     })
   };
 
-  const uploadImages = (imageList, addUpdateIndex) => {
-    setPhotos(imageList);
-    if (imageList == null) {
-      return;
-    };
-    setImages([]);
-    var tempArr = [];
-    for (let i = 0; i < imageList.length; i++) {
-      let image = imageList[i].file;
-      console.log("image " + image);
+  const uploadImages = async (imageFiles) => {
+    if (imageFiles == null) return;
+    for (let i = 0; i < imageFiles.length; i++) {
+      let image = imageFiles[i];
       const imageRef = ref(storage, `images/${v4() + image.name}`);
-      uploadBytes(imageRef, image).then((value) => {
+      await uploadBytes(imageRef, image).then((value) => {
         getDownloadURL(imageRef).then((url) => {
-          tempArr.push(url);
+          images.push(url);
+          setImages([...images]);
         });
       })
     }
-    setImages(tempArr);
-
   };
+
+  const removeImagesAtIndex = (index) => {
+    images.splice(index, 1);
+    setImages([...images]);
+  }
 
   const menuListRef = ref(storage, "menu/");
   const uploadMenuFile = (file) => {
@@ -110,6 +96,7 @@ const UpdateRestaurants = () => {
       });
     });
   };
+
 
   useEffect(() => {
     listAll(menuListRef).then((response) => {
@@ -180,6 +167,7 @@ const UpdateRestaurants = () => {
     const docSnap = await getDoc(docRef)
     const data = docSnap.data()
 
+
     const newFields = {
       address: data.address,
       name: data.name,
@@ -229,20 +217,13 @@ const UpdateRestaurants = () => {
     setLat(newFields.location.latitude)
     setLng(newFields.location.longitude)
     setLocation({ lat: newFields.location.latitude, lng: newFields.location.longitude });
-
-
-
-
   }
-
 
   const updateUser = async () => {
     try {
       const docRef = doc(db, "restaurantes", locationn.state.id);
       const docSnap = await getDoc(docRef)
       const data = docSnap.data()
-
-      console.log(images);
 
       const newFields = {
         address: address,
@@ -272,21 +253,26 @@ const UpdateRestaurants = () => {
 
       await updateDoc(docRef, newFields)
         .then(docRef => {
-          console.log("Value of an Existing Document Field has been updated");
+          Swal.fire({
+            position: 'top-end',
+            icon: 'success',
+            title: 'Məlumat yeniləndi',
+            showConfirmButton: false,
+            timer: 1500
+          })
         })
     }
     catch (err) {
       console.log(err)
     }
   };
-
+  
   useEffect(() => {
     addData()
   }, [])
 
   function fmt(date, format = 'YYYY-MM-DDThh:mm:ss') {
     const pad2 = (n) => n.toString().padStart(2, '0');
-
     const map = {
       YYYY: date.getFullYear(),
       MM: pad2(date.getMonth() + 1),
@@ -311,12 +297,12 @@ const UpdateRestaurants = () => {
       {phoneNumbers.map((singleService, index) => (
 
         <div key={index} className="row align-items-center justify-content-center">
-          <div className="col-lg-8">
+          <div className="col-lg-8 col-10">
             <div className="first-division">
               <TextField fullWidth id="outlined-basic" value={phoneNumbers[index]} onChange={(e) => phoneNumberChange(e, index)} label="Mobil nömrə" variant="outlined" />
             </div>
           </div>
-          <div className="col-lg-2">
+          <div className="col-lg-2 col-2">
             <div className="second-division">
               {phoneNumbers.length !== 1 && (
                 <button
@@ -366,6 +352,7 @@ const UpdateRestaurants = () => {
               }}
               sx={{ width: 150 }}
             />
+           
 
             <TextField
               id="time"
@@ -464,108 +451,56 @@ const UpdateRestaurants = () => {
         </div>
         <div className="col-lg-6 d-flex justify-content-end">
           <FormLabel component="legend">
-            <Switch value={bookingAvailable} defaultChecked onChange={(e) => (
+            <Switch checked={bookingAvailable}   onChange={(e) => (
               setBookingAvailable(e.target.checked)
             )} />
           </FormLabel>
         </div>
-
       </div>
       <div className="profilePhoto">
         <p>Profil şəkli</p>
-
-        <ImageUploading
-          value={singleImages}
-          onChange={uploadSingleImage}
-          maxNumber={maxNumber}
-          dataURLKey="data_url"
-        >
-          {({
-            imageList,
-            onImageUpload,
-            onImageRemoveAll,
-            onImageUpdate,
-            onImageRemove,
-            isDragging,
-            dragProps,
-          }) => (
-            <div className="upload__image-wrapper">
-              <button
-                style={isDragging ? { color: 'red' } : undefined}
-                onClick={onImageUpload}
-                {...dragProps}
-                className="uploadSinglePhoto"
-              >
-                Upload photo
-              </button>
-              &nbsp;
-              <div className="image-item">
-                <img src={thumbImage} className="smallphoto" alt="" width="600" />
-              </div>
-            </div>
-          )}
-
-        </ImageUploading>
-
+        <div class="fileUpload">
+          <input
+            multiple
+            type="file"
+            id='upload_image'
+            className='upload-images'
+            onChange={(event) => { uploadThumbImage(event.target.files[0]) }}
+          />
+          <label class="file-input__label" for="upload_image">
+            <span>Upload file</span></label>
+        </div>
+        <img src={thumbImage} className="smallphoto" alt=""  />
       </div>
       <div className="photos">
         <p>Səkillər</p>
-        <ImageUploading
-          multiple
-          value={images}
-          onChange={uploadImages}
-          maxNumber={maxNumber}
-          dataURLKey="data_url"
-        >
-          {({
-            imageList,
-            onImageUpload,
-            onImageRemoveAll,
-            onImageUpdate,
-            onImageRemove,
-            isDragging,
-            dragProps,
-          }) => (
-            <div className="upload__image-wrapper">
+
+        <div className='fileUpload'>
+          <div class="file-input">
+            <input
+              multiple
+              type="file"
+              id='upload_images'
+              className='upload-images'
+              onChange={(event) => { uploadImages(event.target.files) }}
+            />
+            <label class="file-input__label" for="upload_images">
+              <span>Upload file</span></label
+            >
+          </div>
+          {images.map((image, index) => (
+            <div key={index} className="image-item">
+              <img src={image} className="smallphoto" alt="" width="200" />
               <button
-                style={isDragging ? { color: 'red' } : undefined}
-                onClick={onImageUpload}
-                {...dragProps}
-                className="uploadSinglePhoto"
+                type="button"
+                onClick={() => removeImagesAtIndex(index)}
+                className="remove-btn"
               >
-                Click or Drop here
-
+                <i class="fa-solid fa-trash"></i>
               </button>
-              &nbsp;
-              {/* {imageList.map((image, index) => (
-                <div key={index} className="image-item">
-                  <img src={image} className="smallphoto" alt="" width="200" />
-                  <div className="image-item__btn-wrapper">
-                    <button onClick={() => onImageUpdate(index)} className="update"><i class="fa-solid fa-arrows-rotate"></i></button>
-                    <button onClick={() => onImageRemove(index)} className="remove"><i class="fa-solid fa-trash"></i></button>
-                  </div>
-                </div>
-              ))} */}
-
-
-              {
-                images.map((image) => (
-                  <div className="image-item">
-                    <img className='mt-2' width={200} src={image} alt="" />
-                  </div>
-                ))
-              }
             </div>
-          )}
-        </ImageUploading>
-
-
-        {/* {
-          images.map((i) => (
-            <img width={100} src={i} alt="" />
-          ))
-        } */}
-
+          ))}
+        </div>
       </div>
       <TextField fullWidth id="outlined-basic" label="İcazə verilən ən çox qonaq sayı" value={maxAllowedGuests} className='mb-4 mt-4' type="number"
         onChange={(event) => (
@@ -576,12 +511,12 @@ const UpdateRestaurants = () => {
         )} variant="outlined" />
       {roomTypes.map((singleRoom, index) => (
         <div key={index} className="row align-items-center justify-content-center">
-          <div className="col-lg-8">
+          <div className="col-lg-8 col-10">
             <div className="first-division">
               <TextField fullWidth id="outlined-basic" value={roomTypes[index]} onChange={(e) => roomChange(e, index)} label="Otaq növləri" variant="outlined" />
             </div>
           </div>
-          <div className="col-lg-2">
+          <div className="col-lg-2 col-2">
             <div className="second-division">
               {roomTypes.length !== 1 && (
                 <button
@@ -632,7 +567,6 @@ const UpdateRestaurants = () => {
         onChangeZoom={handleChangeZoom}
         apiKey='AIzaSyAkpCdayFL9fFwjqEG2DaSGYA0Vz73EVog'
       />
-
       <br />
       <Box sx={{ minWidth: 120 }}>
         <FormControl fullWidth>
