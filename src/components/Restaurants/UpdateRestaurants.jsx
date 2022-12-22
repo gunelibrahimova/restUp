@@ -10,7 +10,6 @@ import { getDownloadURL, listAll, ref, uploadBytes } from "firebase/storage"
 import { v4 } from 'uuid';
 import Swal from 'sweetalert2'
 import { useLocation } from 'react-router-dom';
-import { async } from '@firebase/util';
 
 const DefaultLocation = { lat: 40.4093, lng: 49.8671 };
 const DefaultZoom = 10;
